@@ -474,10 +474,10 @@ function getTimeRemaining() {
 // Форматирование текста задачи с чекбоксами
 function formatTaskName(taskIdx, name) {
     if (!name) return '&nbsp;'.repeat(20);
-    
-    // Если нет чекбоксов, добавляем один в начале
+
+    // Если нет чекбоксов, добавляем один в начале с пробелом
     if (!name.includes('▢') && !name.includes('☒')) {
-        name = '▢' + name;
+        name = '▢ ' + name;
     }
     
     let result = '';
@@ -512,10 +512,10 @@ function formatTaskName(taskIdx, name) {
 // Переключение чекбокса
 function toggleCheckbox(taskIdx, cbIdx) {
     let name = state.tasks[taskIdx].name;
-    
-    // Если нет чекбоксов в тексте, добавляем
+
+    // Если нет чекбоксов в тексте, добавляем с пробелом
     if (!name.includes('▢') && !name.includes('☒')) {
-        state.tasks[taskIdx].name = '☒' + name;
+        state.tasks[taskIdx].name = '☒ ' + name;
         render();
         return;
     }
@@ -592,12 +592,13 @@ function render() {
         inp.addEventListener('input', (e) => {
             const t = parseInt(e.target.dataset.task);
             let val = e.target.value;
-            // Автозамена [] или ! на ▢
+            // Автозамена [] или ! на ▢ + пробел
             if (val.includes('[]') || val.includes('!')) {
-                const pos = e.target.selectionStart;
-                val = val.replace(/\[\]/g, '▢').replace(/!/g, '▢');
+                let pos = e.target.selectionStart;
+                val = val.replace(/\[\]/g, '▢ ').replace(/!/g, '▢ ');
                 e.target.value = val;
-                e.target.selectionStart = e.target.selectionEnd = pos;
+                // Курсор после пробела
+                e.target.selectionStart = e.target.selectionEnd = pos + 1;
             }
             state.tasks[t].name = val;
         });
