@@ -754,6 +754,12 @@ onValue(ref(db, 'schedule'), (snapshot) => {
     }
 });
 
+// Делаем функции глобальными для onclick
+window.startRun = startRun;
+window.stopRun = stopRun;
+window.resetAll = resetAll;
+window.addTask = addTask;
+
 // Старт
 render();
 </script>
