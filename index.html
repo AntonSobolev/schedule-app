@@ -197,6 +197,7 @@
     <button class="btn" onclick="delTask()">DEL</button>
     <button class="btn" onclick="location.reload()">REFRESH</button>
     <button class="btn" onclick="toggleTheme()">COLOR</button>
+    <button class="btn" onclick="exitUser()">EXIT</button>
 </div>
 
 
@@ -874,6 +875,12 @@ window.resetAll = resetAll;
 window.addTask = addTask;
 window.delTask = delTask;
 window.toggleTheme = toggleTheme;
+window.exitUser = exitUser;
+
+function exitUser() {
+    localStorage.removeItem('schedule_user');
+    location.reload();
+}
 
 // Переключение темы
 const themes = ['theme-white', 'theme-green', 'theme-red'];
