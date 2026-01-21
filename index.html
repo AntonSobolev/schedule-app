@@ -110,9 +110,9 @@
         }
 
         .btn {
-            background: #020;
-            color: #0f0;
-            border: 1px solid #0f0;
+            background: #010;
+            color: #050;
+            border: 1px solid #050;
             padding: 5px 15px;
             font-family: 'Courier New', monospace;
             font-size: 16px;
@@ -126,8 +126,8 @@
         }
 
         body.theme-white .btn {
-            color: #fff;
-            border-color: #fff;
+            color: #555;
+            border-color: #555;
         }
 
         body.theme-white .task-checkbox-icon {
@@ -143,8 +143,8 @@
         }
 
         body.theme-green .btn {
-            color: #0f0;
-            border-color: #0f0;
+            color: #050;
+            border-color: #050;
         }
 
         body.theme-green .task-checkbox-icon {
@@ -160,8 +160,8 @@
         }
 
         body.theme-red .btn {
-            color: #8B3A3A;
-            border-color: #8B3A3A;
+            color: #4a2020;
+            border-color: #4a2020;
         }
 
         body.theme-red .task-checkbox-icon {
@@ -172,8 +172,31 @@
             color: #5C2A2A;
         }
 
-        .btn:hover { background: #040; }
+        .btn:hover { background: #020; color: #0a0; border-color: #0a0; }
+        body.theme-white .btn:hover { color: #888; border-color: #888; }
+        body.theme-red .btn:hover { color: #6a3030; border-color: #6a3030; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .day-done {
+            display: none;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 20px;
+            color: #0f0;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .day-done.visible {
+            display: block;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        body.theme-white .day-done { color: #fff; }
+        body.theme-red .day-done { color: #8B3A3A; }
 
         #help {
             margin-top: 10px;
@@ -258,6 +281,8 @@
 <body>
 
 <div id="app"></div>
+
+<div id="dayDone" class="day-done"></div>
 
 <div class="status-bar">
     <button class="btn" id="btnStart" onclick="startRun()">▶</button>
@@ -861,6 +886,7 @@ function startRun() {
     state.mode = 'run';
     state.lastMinute = -1;
     state.interval = setInterval(update, 2000);
+    hideDayDone();
     saveToFirebase();
     update();
 }
@@ -900,6 +926,7 @@ function delTask() {
 // Сброс
 function resetAll() {
     stopRun();
+    hideDayDone();
     state.tasks = Array.from({length: MAX_TASKS}, () => ({
         name: '',
         slots: new Set(),
@@ -922,15 +949,44 @@ function update() {
         else if (minute === 30) beepHalf();
     }
 
-    // Проверка конца
+    // Проверка конца дня (22:00)
     const cur = getCurrentSlot();
     if (cur === -1 || cur >= TOTAL_SLOTS) {
         finalBeep();
         stopRun();
+        showDayDone();
         return;
     }
 
+    // Проверка завершения всех рабочих слотов
+    const stats = getStats();
+    if (stats.totalWork > 0 && stats.lastSlotEnd) {
+        const { work } = getAggregatedSlots();
+        const lastWorkSlot = Math.max(...Array.from(work));
+
+        // Если текущий слот больше последнего рабочего — работа завершена
+        if (cur > lastWorkSlot) {
+            finalBeep();
+            stopRun();
+            showDayDone();
+            return;
+        }
+    }
+
     render();
+}
+
+// Показать сообщение о завершении дня
+function showDayDone() {
+    const el = document.getElementById('dayDone');
+    el.textContent = '✓ Your Day is Done!';
+    el.classList.add('visible');
+}
+
+// Скрыть сообщение
+function hideDayDone() {
+    const el = document.getElementById('dayDone');
+    el.classList.remove('visible');
 }
 
 // F5
