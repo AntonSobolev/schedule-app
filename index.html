@@ -273,45 +273,45 @@
 
 <div id="helpOverlay" class="help-overlay" onclick="hideHelp()">
     <div class="help-popup" onclick="event.stopPropagation()">
-        <div class="help-title">═══ ПОМОЩЬ ═══</div>
+        <div class="help-title">═══ HELP ═══</div>
         <div class="help-content">
-<b>СИМВОЛЫ:</b>
-  ▢ — пустой слот (30 мин)
-  ■ — заполненный слот
-  ▣ — текущий слот (мигает)
-  ▨ — отдых
+<b>SYMBOLS:</b>
+  ▢ — empty slot (30 min)
+  ■ — filled slot
+  ▣ — current slot (blinks)
+  ▨ — rest/break
 
-<b>РЕДАКТИРОВАНИЕ ЗАДАЧ:</b>
-  • Клик на текст — редактировать
-  • Enter — создать новую задачу
-  • ↑/↓ — переход между задачами
-  • ! или [] — добавить чекбокс
+<b>EDITING TASKS:</b>
+  • Click on text — edit
+  • Enter — create new task
+  • ↑/↓ — navigate between tasks
+  • ! or [] — add checkbox
 
-<b>СЛОТЫ (правая часть):</b>
-  • Клик — цикл: пусто → работа → отдых → пусто
-  • Слот можно назначить только одной задаче
-  • Отдых отображается во всех строках
+<b>SLOTS (right side):</b>
+  • Click — cycle: empty → work → rest → empty
+  • Slot can only be assigned to one task
+  • Rest slots are shown in all rows
 
-<b>ЧЕКБОКСЫ:</b>
-  • Клик на ▢/☒ — отметить выполнено
-  • Работает в любом режиме
+<b>CHECKBOXES:</b>
+  • Click on ▢/☒ — mark as done
+  • Works in any mode
 
-<b>КНОПКИ:</b>
-  ▶ — запустить таймер
-  ⏸ — остановить таймер
-  RESET — сбросить всё
-  ADD/DEL — добавить/удалить задачу
-  COLOR — сменить тему
-  EXIT — сменить пользователя
+<b>BUTTONS:</b>
+  ▶ — start timer
+  ⏸ — stop timer
+  RESET — reset everything
+  ADD/DEL — add/remove task
+  COLOR — change theme
+  EXIT — change user
 
-<b>ГОРЯЧИЕ КЛАВИШИ:</b>
-  F5 — запустить таймер
+<b>HOTKEYS:</b>
+  F5 — start timer
 
-<b>СИНХРОНИЗАЦИЯ:</b>
-  Данные синхронизируются между
-  устройствами автоматически.
+<b>SYNC:</b>
+  Data syncs between devices
+  automatically.
         </div>
-        <button class="btn help-close" onclick="hideHelp()">ЗАКРЫТЬ</button>
+        <button class="btn help-close" onclick="hideHelp()">CLOSE</button>
     </div>
 </div>
 
@@ -338,7 +338,7 @@ const db = getDatabase(firebaseApp);
 // Получить имя пользователя
 let userName = localStorage.getItem('schedule_user');
 if (!userName) {
-    userName = prompt('Введите ваше имя:');
+    userName = prompt('Enter your name:');
     if (userName) {
         userName = userName.trim().toLowerCase().replace(/[^a-zа-я0-9]/gi, '');
         localStorage.setItem('schedule_user', userName);
