@@ -107,6 +107,10 @@
             margin-top: 10px;
             font-family: 'Courier New', monospace;
             font-size: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px 10px;
         }
 
         .btn {
@@ -118,7 +122,6 @@
             font-size: 16px;
             font-weight: normal;
             cursor: pointer;
-            margin-right: 10px;
         }
 
         body.theme-white {
@@ -286,14 +289,14 @@
 
 <div class="status-bar">
     <button class="btn" id="btnStart" onclick="startRun()">▶</button>
-    <button class="btn" id="btnStop" onclick="stopRun()" disabled>⏸</button>
-    <button class="btn" onclick="resetAll()">RESET</button>
+    <button class="btn" id="btnStop" onclick="stopRun()" disabled>||</button>
+    <button class="btn" onclick="resetAll()">RES</button>
     <button class="btn" onclick="addTask()">ADD</button>
     <button class="btn" onclick="delTask()">DEL</button>
-    <button class="btn" onclick="location.reload()">REFRESH</button>
-    <button class="btn" onclick="toggleTheme()">COLOR</button>
+    <button class="btn" onclick="location.reload()">REFR</button>
+    <button class="btn" onclick="toggleTheme()">COL</button>
     <button class="btn" onclick="exitUser()">EXIT</button>
-    <button class="btn" onclick="showHelp()">HELP</button>
+    <button class="btn" onclick="showHelp()">?</button>
 </div>
 
 <div id="helpOverlay" class="help-overlay" onclick="hideHelp()">
@@ -323,11 +326,12 @@
 
 <b>BUTTONS:</b>
   ▶ — start timer
-  ⏸ — stop timer
-  RESET — reset everything
+  || — stop timer
+  RES — reset everything
   ADD/DEL — add/remove task
-  COLOR — change theme
+  COL — change theme
   EXIT — change user
+  ? — this help
 
 <b>HOTKEYS:</b>
   F5 — start timer
