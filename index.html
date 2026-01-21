@@ -219,6 +219,17 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 
+// Получить имя пользователя
+let userName = localStorage.getItem('schedule_user');
+if (!userName) {
+    userName = prompt('Введите ваше имя:');
+    if (userName) {
+        userName = userName.trim().toLowerCase().replace(/[^a-zа-я0-9]/gi, '');
+        localStorage.setItem('schedule_user', userName);
+    }
+}
+if (!userName) userName = 'default';
+
 // Константы
 const START_HOUR = 8;
 const END_HOUR = 22;
@@ -809,12 +820,12 @@ function saveToFirebase() {
             restSlots: Array.from(t.restSlots)
         }))
     };
-    set(ref(db, 'schedule'), data);
+    set(ref(db, 'users/' + userName), data);
 }
 
 // Загрузка из Firebase и подписка на изменения
 let isLocalChange = false;
-onValue(ref(db, 'schedule'), (snapshot) => {
+onValue(ref(db, 'users/' + userName), (snapshot) => {
     if (isLocalChange) {
         isLocalChange = false;
         return;
