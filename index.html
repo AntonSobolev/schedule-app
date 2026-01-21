@@ -190,8 +190,8 @@
 <div id="app"></div>
 
 <div class="status-bar">
-    <button class="btn" id="btnStart" onclick="startRun()">START</button>
-    <button class="btn" id="btnStop" onclick="stopRun()" disabled>STOP</button>
+    <button class="btn" id="btnStart" onclick="startRun()">▶</button>
+    <button class="btn" id="btnStop" onclick="stopRun()" disabled>⏸</button>
     <button class="btn" onclick="resetAll()">RESET</button>
     <button class="btn" onclick="addTask()">ADD</button>
     <button class="btn" onclick="delTask()">DEL</button>
@@ -706,13 +706,22 @@ document.getElementById('app').addEventListener('mousedown', (e) => {
     const task = state.tasks[t];
 
     if (e.button === 0) {
+        // Проверить, занят ли слот другой задачей
+        let slotTaken = false;
+        for (let i = 0; i < state.tasks.length; i++) {
+            if (i !== t && (state.tasks[i].slots.has(s) || state.tasks[i].restSlots.has(s))) {
+                slotTaken = true;
+                break;
+            }
+        }
+        
         // ЛКМ - цикл: пусто → рабочий → отдых → пусто
         if (task.restSlots.has(s)) {
             task.restSlots.delete(s);
         } else if (task.slots.has(s)) {
             task.slots.delete(s);
             task.restSlots.add(s);
-        } else {
+        } else if (!slotTaken) {
             task.slots.add(s);
         }
     }
