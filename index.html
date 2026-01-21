@@ -121,21 +121,55 @@
             margin-right: 10px;
         }
 
-        body.multicolor {
+        body.theme-white {
             color: #fff;
         }
 
-        body.multicolor .btn {
+        body.theme-white .btn {
             color: #fff;
             border-color: #fff;
         }
 
-        body.multicolor .task-checkbox-icon {
+        body.theme-white .task-checkbox-icon {
             color: #A06B4F;
         }
 
-        body.multicolor .rest-slot {
+        body.theme-white .rest-slot {
             color: #A06B4F;
+        }
+
+        body.theme-green {
+            color: #0f0;
+        }
+
+        body.theme-green .btn {
+            color: #0f0;
+            border-color: #0f0;
+        }
+
+        body.theme-green .task-checkbox-icon {
+            color: #0f0;
+        }
+
+        body.theme-green .rest-slot {
+            color: #0f0;
+        }
+
+        body.theme-red {
+            color: #8B3A3A;
+        }
+
+        body.theme-red .btn {
+            color: #8B3A3A;
+            border-color: #8B3A3A;
+        }
+
+        body.theme-red .task-checkbox-icon {
+            color: #5C2A2A;
+        }
+
+        body.theme-red .rest-slot {
+            color: #5C2A2A;
         }
 
         .btn:hover { background: #040; }
@@ -162,7 +196,7 @@
     <button class="btn" onclick="addTask()">ADD</button>
     <button class="btn" onclick="delTask()">DEL</button>
     <button class="btn" onclick="location.reload()">REFRESH</button>
-    <button class="btn" onclick="toggleTheme()">MULTICOLOR</button>
+    <button class="btn" onclick="toggleTheme()">COLOR</button>
 </div>
 
 
@@ -334,16 +368,26 @@ function slotChar(ch, isRest) {
     return ch;
 }
 
+// Получить все слоты отдыха из всех задач
+function getAllRestSlots() {
+    const rest = new Set();
+    for (const task of state.tasks) {
+        for (const s of task.restSlots) rest.add(s);
+    }
+    return rest;
+}
+
 // Построение строки слотов для задачи
 function buildTaskSlots(taskIdx, currentSlot, isRun) {
     const task = state.tasks[taskIdx];
+    const allRest = getAllRestSlots();
     let html = '';
 
     for (let i = 0; i < TOTAL_SLOTS; i++) {
         let ch;
         let isCurrent = false;
 
-        if (task.restSlots.has(i)) {
+        if (allRest.has(i)) {
             ch = `<span class="rest-slot">${REST}</span>`;
         } else if (task.slots.has(i)) {
             if (isRun) {
@@ -523,7 +567,7 @@ function render() {
         const displayHtml = formatTaskName(t, task.name);
 
         html += `<div class="line">`;
-        html += `<input type="text" class="task-input" value="${escapeHtml(task.name)}" data-task="${t}" maxlength="40" ${isRun ? 'disabled' : ''}>`;
+        html += `<input type="text" class="task-input" value="${escapeHtml(task.name)}" data-task="${t}" maxlength="16" ${isRun ? 'disabled' : ''}>`;
         html += `<span class="task-display" data-task="${t}">${displayHtml}</span>`;
         html += `|${slotsHtml}`;
         html += `</div>`;
@@ -807,8 +851,14 @@ window.delTask = delTask;
 window.toggleTheme = toggleTheme;
 
 // Переключение темы
+const themes = ['theme-white', 'theme-green', 'theme-red'];
+let currentTheme = 0;
+document.body.classList.add(themes[0]);
+
 function toggleTheme() {
-    document.body.classList.toggle('multicolor');
+    document.body.classList.remove(themes[currentTheme]);
+    currentTheme = (currentTheme + 1) % themes.length;
+    document.body.classList.add(themes[currentTheme]);
 }
 
 // Старт
