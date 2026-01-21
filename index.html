@@ -143,6 +143,8 @@
     <button class="btn" id="btnStop" onclick="stopRun()" disabled>STOP</button>
     <button class="btn" onclick="resetAll()">RESET</button>
     <button class="btn" onclick="addTask()">ADD</button>
+    <button class="btn" onclick="delTask()">DEL</button>
+    <button class="btn" onclick="location.reload()">REFRESH</button>
 </div>
 
 
@@ -673,6 +675,15 @@ function addTask() {
     render();
 }
 
+// Удалить последнюю задачу
+function delTask() {
+    if (state.tasks.length > 1) {
+        state.tasks.pop();
+        saveToFirebase();
+        render();
+    }
+}
+
 // Сброс
 function resetAll() {
     stopRun();
@@ -766,6 +777,7 @@ window.startRun = startRun;
 window.stopRun = stopRun;
 window.resetAll = resetAll;
 window.addTask = addTask;
+window.delTask = delTask;
 
 // Старт
 render();
