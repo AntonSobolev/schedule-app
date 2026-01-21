@@ -112,7 +112,7 @@
             justify-content: center;
             gap: 8px 10px;
             width: 100%;
-            max-width: 57ch;
+            max-width: 62ch;
         }
 
         .btn {
@@ -141,6 +141,57 @@
 
         body.theme-white .rest-slot {
             color: #A06B4F;
+        }
+
+        body.theme-cream {
+            background: #F5F0E8;
+            color: #333;
+        }
+
+        body.theme-cream .btn {
+            background: #EBE6DE;
+            color: #888;
+            border-color: #888;
+        }
+
+        body.theme-cream .btn:hover {
+            color: #555;
+            border-color: #555;
+        }
+
+        body.theme-cream .task-checkbox-icon {
+            color: #A06B4F;
+        }
+
+        body.theme-cream .rest-slot {
+            color: #A06B4F;
+        }
+
+        body.theme-cream .task-input:focus {
+            background: #EBE6DE;
+        }
+
+        body.theme-cream .slot-char:hover {
+            background: #EBE6DE;
+        }
+
+        body.theme-cream .task-done {
+            color: #999;
+        }
+
+        body.theme-cream .day-done {
+            color: #333;
+        }
+
+        body.theme-cream .help-popup {
+            background: #F5F0E8;
+            border-color: #333;
+        }
+
+        body.theme-cream .help-title,
+        body.theme-cream .help-content,
+        body.theme-cream .help-content b {
+            color: #333;
         }
 
         body.theme-green {
@@ -292,10 +343,10 @@
 <div class="status-bar">
     <button class="btn" id="btnStart" onclick="startRun()">▶</button>
     <button class="btn" id="btnStop" onclick="stopRun()" disabled>||</button>
+    <button class="btn" onclick="location.reload()">↻</button>
     <button class="btn" onclick="resetAll()">RES</button>
-    <button class="btn" onclick="addTask()">ADD</button>
-    <button class="btn" onclick="delTask()">DEL</button>
-    <button class="btn" onclick="location.reload()">REFR</button>
+    <button class="btn" onclick="addTask()">+</button>
+    <button class="btn" onclick="delTask()">−</button>
     <button class="btn" onclick="toggleTheme()">COL</button>
     <button class="btn" onclick="exitUser()">EXIT</button>
     <button class="btn" onclick="showHelp()">?</button>
@@ -329,8 +380,9 @@
 <b>BUTTONS:</b>
   ▶ — start timer
   || — stop timer
+  ↻ — reload page
   RES — reset everything
-  ADD/DEL — add/remove task
+  +/− — add/remove task
   COL — change theme
   EXIT — change user
   ? — this help
@@ -1080,7 +1132,7 @@ function exitUser() {
 }
 
 // Переключение темы
-const themes = ['theme-white', 'theme-green', 'theme-red'];
+const themes = ['theme-white', 'theme-cream', 'theme-green', 'theme-red'];
 let currentTheme = 0;
 document.body.classList.add(themes[0]);
 
