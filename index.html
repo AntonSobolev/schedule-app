@@ -509,12 +509,12 @@ function render() {
                 e.target.selectionStart = e.target.selectionEnd = pos;
             }
             state.tasks[t].name = val;
-            saveToFirebase();
         });
 
         inp.addEventListener('blur', (e) => {
             e.target.classList.remove('editing');
             e.target.nextElementSibling.classList.remove('hidden');
+            saveToFirebase();
             render();
         });
 
@@ -712,6 +712,7 @@ document.addEventListener('keydown', e => {
 
 // Сохранение в Firebase
 function saveToFirebase() {
+    isLocalChange = true;
     const data = {
         mode: state.mode,
         tasks: state.tasks.map(t => ({
@@ -724,9 +725,20 @@ function saveToFirebase() {
 }
 
 // Загрузка из Firebase и подписка на изменения
+let isLocalChange = false;
 onValue(ref(db, 'schedule'), (snapshot) => {
+    if (isLocalChange) {
+        isLocalChange = false;
+        return;
+    }
     const data = snapshot.val();
     if (data) {
+        // Не обновлять если редактируем поле
+        const activeEl = document.activeElement;
+        if (activeEl && activeEl.classList.contains('task-input')) {
+            return;
+        }
+        
         state.mode = data.mode || 'edit';
         state.tasks = data.tasks.map(t => ({
             name: t.name || '',
