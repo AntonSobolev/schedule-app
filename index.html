@@ -90,11 +90,11 @@
             display: none;
         }
 
-        .task-checkbox {
+        .task-checkbox, .task-checkbox-icon {
             cursor: pointer;
         }
 
-        .task-checkbox:hover {
+        .task-checkbox:hover, .task-checkbox-icon:hover {
             background: #030;
         }
 
@@ -130,7 +130,7 @@
             border-color: #fff;
         }
 
-        body.multicolor .task-checkbox {
+        body.multicolor .task-checkbox-icon {
             color: #A06B4F;
         }
 
@@ -442,7 +442,7 @@ function formatTaskName(taskIdx, name) {
             }
             
             const cls = isChecked ? 'task-done' : '';
-            result += `<span class="task-checkbox ${cls}" data-task="${taskIdx}" data-cb="${cbIdx}">${checkChar}${escapeHtml(text)}</span>`;
+            result += `<span class="task-checkbox-icon" data-task="${taskIdx}" data-cb="${cbIdx}">${checkChar}</span><span class="task-checkbox ${cls}" data-task="${taskIdx}" data-cb="${cbIdx}">${escapeHtml(text)}</span>`;
             cbIdx++;
         } else {
             result += escapeHtml(name[i]);
@@ -611,7 +611,7 @@ function render() {
     document.querySelectorAll('.task-display').forEach(disp => {
         disp.addEventListener('click', (e) => {
             // Клик на чекбокс - работает всегда
-            const checkbox = e.target.closest('.task-checkbox');
+            const checkbox = e.target.closest('.task-checkbox, .task-checkbox-icon');
             if (checkbox) {
                 e.preventDefault();
                 e.stopPropagation();
