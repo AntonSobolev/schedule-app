@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Распорядок дня</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            line-height: 1.4;
+            padding: 10px;
+        }
+
+        #app {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: normal;
+        }
+
+        .line {
+            white-space: pre;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: normal;
+            height: 1.4em;
+        }
+
+        .blink {
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0.3; }
+        }
+
+        .slot-char {
+            cursor: pointer;
+        }
+
+        .slot-char:hover {
+            background: #030;
+        }
+
+        .task-input {
+            background: transparent;
+            border: none;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: normal;
+            width: 18ch;
+            outline: none;
+            padding: 0;
+            margin: 0;
+            display: none;
+        }
+
+        .task-input:focus {
+            background: #020;
+        }
+
+        .task-input.editing {
+            display: inline;
+        }
+
+        .task-display {
+            display: inline-block;
+            width: 18ch;
+            cursor: text;
+        }
+
+        .task-display.hidden {
+            display: none;
+        }
+
+        .task-checkbox {
+            cursor: pointer;
+        }
+
+        .task-checkbox:hover {
+            background: #030;
+        }
+
+        .task-done {
+            text-decoration: line-through;
+            color: #080;
+        }
+
+        .status-bar {
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+        }
+
+        .btn {
+            background: #020;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: normal;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .btn:hover { background: #040; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        #help {
+            margin-top: 15px;
+            color: #080;
+            white-space: pre;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<div class="status-bar">
+    <button class="btn" id="btnStart" onclick="startRun()">START</button>
+    <button class="btn" id="btnStop" onclick="stopRun()" disabled>STOP</button>
+    <button class="btn" onclick="resetAll()">RESET</button>
+    <button class="btn" onclick="addTask()">ADD</button>
+</div>
+
+
+
+<script type="module">
+// Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDtLFSOloen83YxG4NFlohGMw72VGMOdXg",
+    authDomain: "schedule-app-c2467.firebaseapp.com",
+    databaseURL: "https://schedule-app-c2467-default-rtdb.firebaseio.com",
+    projectId: "schedule-app-c2467",
+    storageBucket: "schedule-app-c2467.firebasestorage.app",
+    messagingSenderId: "740448647447",
+    appId: "1:740448647447:web:115ffd04ebd504bc77df52"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getDatabase(firebaseApp);
+
+// Константы
+const START_HOUR = 8;
+const END_HOUR = 22;
+const TOTAL_HOURS = END_HOUR - START_HOUR; // 13 часов
+const TOTAL_SLOTS = TOTAL_HOURS * 2;       // 26 получасовых слотов
+const MAX_TASKS = 5;
+const LEFT_WIDTH = 18; // Ширина левой части до |
+
+// Символы
+const EMPTY = '▢';
+const CURRENT = '▣';
+const FILLED = '■';
+const REST = '▨';
+
+// Состояние
+let state = {
+    mode: 'edit',
+    tasks: Array.from({length: MAX_TASKS}, () => ({
+        name: '',
+        slots: new Set(),
+        restSlots: new Set(),
+        done: false
+    })),
+    lastMinute: -1,
+    interval: null
+};
+
+// Escape HTML
+function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Текущий слот (0-25) или -1
+function getCurrentSlot() {
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    if (h < START_HOUR || h >= END_HOUR) return -1;
+    return (h - START_HOUR) * 2 + (m >= 30 ? 1 : 0);
+}
+
+// Прошедшее время
+function getElapsed() {
+    const now = new Date();
+    if (now.getHours() < START_HOUR) return {h: 0, m: 0};
+    const mins = (now.getHours() - START_HOUR) * 60 + now.getMinutes();
+    return {h: Math.floor(mins / 60), m: Math.floor((mins % 60) / 30) * 3};
+}
+
+// Звук середины часа (30 минут)
+function beepHalf() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 600;
+        osc.type = 'sine';
+        gain.gain.value = 0.1;
+        osc.start();
+        setTimeout(() => { osc.stop(); ctx.close(); }, 100);
+    } catch(e) {}
+}
+
+// Звук конца часа (0 минут)
+function beepHour() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 900;
+        osc.type = 'square';
+        gain.gain.value = 0.1;
+        osc.start();
+        setTimeout(() => { osc.stop(); ctx.close(); }, 150);
+    } catch(e) {}
+}
+
+function finalBeep() {
+    for (let i = 0; i < 5; i++) setTimeout(beepHour, i * 300);
+}
+
+// Собираем все слоты из всех задач для верхней шкалы
+function getAggregatedSlots() {
+    const work = new Set();
+    const rest = new Set();
+
+    for (const task of state.tasks) {
+        for (const s of task.slots) work.add(s);
+        for (const s of task.restSlots) rest.add(s);
+    }
+
+    return { work, rest };
+}
+
+// Построение строки слотов для верхней шкалы (агрегированная)
+function buildHeaderSlots(currentSlot, isRun) {
+    const { work, rest } = getAggregatedSlots();
+    let html = '';
+
+    for (let i = 0; i < TOTAL_SLOTS; i++) {
+        let ch;
+        let isCurrent = false;
+
+        if (rest.has(i)) {
+            ch = REST;
+        } else if (work.has(i)) {
+            if (isRun) {
+                if (i < currentSlot) ch = FILLED;
+                else if (i === currentSlot) { ch = CURRENT; isCurrent = true; }
+                else ch = EMPTY;
+            } else {
+                ch = EMPTY;
+            }
+        } else {
+            if (isRun) {
+                if (i < currentSlot) ch = FILLED;
+                else if (i === currentSlot) { ch = CURRENT; isCurrent = true; }
+                else ch = EMPTY;
+            } else {
+                ch = EMPTY;
+            }
+        }
+
+        if (isCurrent) {
+            html += `<span class="blink">${ch}</span>`;
+        } else {
+            html += ch;
+        }
+
+        // Точка после каждого часа
+        if (i % 2 === 1 && i < TOTAL_SLOTS - 1) {
+            html += '.';
+        }
+    }
+    return html;
+}
+
+// Построение строки слотов для задачи
+function buildTaskSlots(taskIdx, currentSlot, isRun) {
+    const task = state.tasks[taskIdx];
+    let html = '';
+
+    for (let i = 0; i < TOTAL_SLOTS; i++) {
+        let ch;
+        let isCurrent = false;
+
+        if (task.restSlots.has(i)) {
+            ch = REST;
+        } else if (task.slots.has(i)) {
+            if (isRun) {
+                if (i < currentSlot) ch = FILLED;
+                else if (i === currentSlot) { ch = CURRENT; isCurrent = true; }
+                else ch = EMPTY;
+            } else {
+                ch = EMPTY;
+            }
+        } else {
+            ch = ' ';
+        }
+
+        const cls = isCurrent ? 'slot-char blink' : 'slot-char';
+        html += `<span class="${cls}" data-t="${taskIdx}" data-s="${i}">${ch}</span>`;
+
+        // Точка после каждого часа
+        if (i % 2 === 1 && i < TOTAL_SLOTS - 1) {
+            html += '.';
+        }
+    }
+    return html;
+}
+
+// Паддинг строки до нужной ширины
+function pad(str, width) {
+    while (str.length < width) str += ' ';
+    return str.substring(0, width);
+}
+
+// Расчёт статистики
+function getStats() {
+    const { work, rest } = getAggregatedSlots();
+    const workSlots = Array.from(work);
+    const totalWork = workSlots.length;
+
+    if (totalWork === 0) {
+        return { percent: 0, lastSlotEnd: null, passedWork: 0, totalWork: 0 };
+    }
+
+    const cur = getCurrentSlot();
+    const passedWork = workSlots.filter(s => s < cur).length;
+    const percent = Math.round((passedWork / totalWork) * 100);
+
+    // Последний слот
+    const lastSlot = Math.max(...workSlots);
+    // Время окончания последнего слота
+    const lastSlotEndMins = START_HOUR * 60 + (lastSlot + 1) * 30;
+    const lastSlotEndH = Math.floor(lastSlotEndMins / 60);
+    const lastSlotEndM = lastSlotEndMins % 60;
+
+    return { percent, lastSlotEnd: { h: lastSlotEndH, m: lastSlotEndM }, passedWork, totalWork };
+}
+
+// Время до конца
+function getTimeRemaining() {
+    const stats = getStats();
+    if (!stats.lastSlotEnd) return '--:--';
+
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const endMins = stats.lastSlotEnd.h * 60 + stats.lastSlotEnd.m;
+
+    let remaining = endMins - nowMins;
+    if (remaining < 0) remaining = 0;
+
+    const h = Math.floor(remaining / 60);
+    const m = remaining % 60;
+    return `${h}:${String(m).padStart(2,'0')}`;
+}
+
+// Форматирование текста задачи с чекбоксами
+function formatTaskName(taskIdx, name) {
+    if (!name) return '&nbsp;'.repeat(20);
+    
+    // Если нет чекбоксов, добавляем один в начале
+    if (!name.includes('▢') && !name.includes('☒')) {
+        name = '▢' + name;
+    }
+    
+    let result = '';
+    let i = 0;
+    let cbIdx = 0;
+    
+    while (i < name.length) {
+        if (name[i] === '▢' || name[i] === '☒') {
+            const isChecked = name[i] === '☒';
+            const checkChar = name[i];
+            i++;
+            
+            // Текст до следующего чекбокса
+            let text = '';
+            while (i < name.length && name[i] !== '▢' && name[i] !== '☒') {
+                text += name[i];
+                i++;
+            }
+            
+            const cls = isChecked ? 'task-done' : '';
+            result += `<span class="task-checkbox ${cls}" data-task="${taskIdx}" data-cb="${cbIdx}">${checkChar}${escapeHtml(text)}</span>`;
+            cbIdx++;
+        } else {
+            result += escapeHtml(name[i]);
+            i++;
+        }
+    }
+    
+    return result || '&nbsp;'.repeat(20);
+}
+
+// Переключение чекбокса
+function toggleCheckbox(taskIdx, cbIdx) {
+    let name = state.tasks[taskIdx].name;
+    
+    // Если нет чекбоксов в тексте, добавляем
+    if (!name.includes('▢') && !name.includes('☒')) {
+        state.tasks[taskIdx].name = '☒' + name;
+        render();
+        return;
+    }
+    
+    let newName = '';
+    let count = 0;
+    
+    for (let i = 0; i < name.length; i++) {
+        if (name[i] === '▢' || name[i] === '☒') {
+            if (count === cbIdx) {
+                newName += name[i] === '▢' ? '☒' : '▢';
+            } else {
+                newName += name[i];
+            }
+            count++;
+        } else {
+            newName += name[i];
+        }
+    }
+    
+    state.tasks[taskIdx].name = newName;
+    saveToFirebase();
+    render();
+}
+
+// Главный рендер
+function render() {
+    const isRun = state.mode === 'run';
+    const cur = isRun ? getCurrentSlot() : -1;
+    const el = getElapsed();
+    const stats = getStats();
+
+    // Формат: tt:mm / XX% / H:MM
+    const now = new Date();
+    const timeNow = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const percent = `${stats.percent}%`;
+    const remaining = getTimeRemaining();
+
+    const timeDisp = `${timeNow} / ${percent} / ${remaining}`;
+
+    // Строка 1: время и метки
+    const left1 = pad(timeDisp, LEFT_WIDTH);
+
+    // Правая часть: метки времени
+    // Шкала: 26 слотов + 12 точек = 38 символов
+    // .9a на позиции 2, .12 на позиции 11, .3p на 20, .6p на 29, .9p на 36
+    const labels = '  .9a      .12      .3p      .6p      .9p';
+
+    // Строка 2: легенда и шкала
+    const left2 = pad(`${EMPTY}.${CURRENT}.${FILLED}.${REST}`, LEFT_WIDTH);
+    const headerSlots = buildHeaderSlots(cur, isRun);
+
+    let html = '';
+    html += `<div class="line">${left1}|${labels}</div>`;
+    html += `<div class="line">${left2}|${headerSlots}</div>`;
+
+    // Строки задач
+    for (let t = 0; t < state.tasks.length; t++) {
+        const task = state.tasks[t];
+        const slotsHtml = buildTaskSlots(t, cur, isRun);
+        const displayHtml = formatTaskName(t, task.name);
+
+        html += `<div class="line">`;
+        html += `<input type="text" class="task-input" value="${escapeHtml(task.name)}" data-task="${t}" maxlength="40" ${isRun ? 'disabled' : ''}>`;
+        html += `<span class="task-display" data-task="${t}">${displayHtml}</span>`;
+        html += `|${slotsHtml}`;
+        html += `</div>`;
+    }
+
+    document.getElementById('app').innerHTML = html;
+
+    // Обработчики
+    document.querySelectorAll('.task-input').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+            const t = parseInt(e.target.dataset.task);
+            let val = e.target.value;
+            // Автозамена [] или ! на ▢
+            if (val.includes('[]') || val.includes('!')) {
+                const pos = e.target.selectionStart;
+                val = val.replace(/\[\]/g, '▢').replace(/!/g, '▢');
+                e.target.value = val;
+                e.target.selectionStart = e.target.selectionEnd = pos;
+            }
+            state.tasks[t].name = val;
+            saveToFirebase();
+        });
+
+        inp.addEventListener('blur', (e) => {
+            e.target.classList.remove('editing');
+            e.target.nextElementSibling.classList.remove('hidden');
+            render();
+        });
+
+        inp.addEventListener('keydown', (e) => {
+            const taskIdx = parseInt(e.target.dataset.task);
+            
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // Вставляем новую задачу после текущей
+                state.tasks.splice(taskIdx + 1, 0, {
+                    name: '',
+                    slots: new Set(),
+                    restSlots: new Set(),
+                    done: false
+                });
+                e.target.blur();
+                saveToFirebase();
+                render();
+                // Фокус на новую задачу
+                setTimeout(() => {
+                    const newInput = document.querySelector(`.task-input[data-task="${taskIdx + 1}"]`);
+                    const newDisplay = document.querySelector(`.task-display[data-task="${taskIdx + 1}"]`);
+                    if (newInput && newDisplay) {
+                        newDisplay.classList.add('hidden');
+                        newInput.classList.add('editing');
+                        newInput.focus();
+                    }
+                }, 0);
+            } else if (e.key === 'ArrowUp' && taskIdx > 0) {
+                e.preventDefault();
+                e.target.blur();
+                render();
+                setTimeout(() => {
+                    const prevInput = document.querySelector(`.task-input[data-task="${taskIdx - 1}"]`);
+                    const prevDisplay = document.querySelector(`.task-display[data-task="${taskIdx - 1}"]`);
+                    if (prevInput && prevDisplay) {
+                        prevDisplay.classList.add('hidden');
+                        prevInput.classList.add('editing');
+                        prevInput.focus();
+                    }
+                }, 0);
+            } else if (e.key === 'ArrowDown' && taskIdx < state.tasks.length - 1) {
+                e.preventDefault();
+                e.target.blur();
+                render();
+                setTimeout(() => {
+                    const nextInput = document.querySelector(`.task-input[data-task="${taskIdx + 1}"]`);
+                    const nextDisplay = document.querySelector(`.task-display[data-task="${taskIdx + 1}"]`);
+                    if (nextInput && nextDisplay) {
+                        nextDisplay.classList.add('hidden');
+                        nextInput.classList.add('editing');
+                        nextInput.focus();
+                    }
+                }, 0);
+            }
+        });
+    });
+
+    document.querySelectorAll('.task-display').forEach(disp => {
+        disp.addEventListener('click', (e) => {
+            // Клик на чекбокс - работает всегда
+            const checkbox = e.target.closest('.task-checkbox');
+            if (checkbox) {
+                e.preventDefault();
+                e.stopPropagation();
+                const taskIdx = parseInt(checkbox.dataset.task);
+                const cbIdx = parseInt(checkbox.dataset.cb);
+                toggleCheckbox(taskIdx, cbIdx);
+                return;
+            }
+
+            // Режим редактирования - только в edit
+            if (state.mode !== 'edit') return;
+            
+            const inp = disp.previousElementSibling;
+            disp.classList.add('hidden');
+            inp.classList.add('editing');
+            inp.focus();
+        });
+    });
+
+    document.getElementById('btnStart').disabled = isRun;
+    document.getElementById('btnStop').disabled = !isRun;
+}
+
+// Обработка кликов по слотам
+document.getElementById('app').addEventListener('mousedown', (e) => {
+    if (state.mode !== 'edit') return;
+
+    const el = e.target;
+    
+    // Клик на слот
+    if (!el.classList.contains('slot-char')) return;
+
+    e.preventDefault();
+
+    const t = parseInt(el.dataset.t);
+    const s = parseInt(el.dataset.s);
+    const task = state.tasks[t];
+
+    if (e.button === 0) {
+        // ЛКМ - цикл: пусто → рабочий → отдых → пусто
+        if (task.restSlots.has(s)) {
+            task.restSlots.delete(s);
+        } else if (task.slots.has(s)) {
+            task.slots.delete(s);
+            task.restSlots.add(s);
+        } else {
+            task.slots.add(s);
+        }
+    }
+
+    saveToFirebase();
+    render();
+});
+
+// Блокируем контекстное меню
+document.getElementById('app').addEventListener('contextmenu', e => e.preventDefault());
+
+// Запуск
+function startRun() {
+    state.mode = 'run';
+    state.lastMinute = -1;
+    state.interval = setInterval(update, 2000);
+    saveToFirebase();
+    update();
+}
+
+// Стоп
+function stopRun() {
+    state.mode = 'edit';
+    if (state.interval) {
+        clearInterval(state.interval);
+        state.interval = null;
+    }
+    saveToFirebase();
+    render();
+}
+
+// Добавить задачу
+function addTask() {
+    state.tasks.push({
+        name: '',
+        slots: new Set(),
+        restSlots: new Set(),
+        done: false
+    });
+    saveToFirebase();
+    render();
+}
+
+// Сброс
+function resetAll() {
+    stopRun();
+    state.tasks = Array.from({length: MAX_TASKS}, () => ({
+        name: '',
+        slots: new Set(),
+        restSlots: new Set(),
+        done: false
+    }));
+    saveToFirebase();
+    render();
+}
+
+// Обновление в режиме run
+function update() {
+    const now = new Date();
+
+    // Звук в середине и конце часа
+    const minute = now.getMinutes();
+    if (minute !== state.lastMinute) {
+        state.lastMinute = minute;
+        if (minute === 0) beepHour();
+        else if (minute === 30) beepHalf();
+    }
+
+    // Проверка конца
+    const cur = getCurrentSlot();
+    if (cur === -1 || cur >= TOTAL_SLOTS) {
+        finalBeep();
+        stopRun();
+        return;
+    }
+
+    render();
+}
+
+// F5
+document.addEventListener('keydown', e => {
+    if (e.key === 'F5' && state.mode === 'edit') {
+        e.preventDefault();
+        startRun();
+    }
+});
+
+// Сохранение в Firebase
+function saveToFirebase() {
+    const data = {
+        mode: state.mode,
+        tasks: state.tasks.map(t => ({
+            name: t.name,
+            slots: Array.from(t.slots),
+            restSlots: Array.from(t.restSlots)
+        }))
+    };
+    set(ref(db, 'schedule'), data);
+}
+
+// Загрузка из Firebase и подписка на изменения
+onValue(ref(db, 'schedule'), (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        state.mode = data.mode || 'edit';
+        state.tasks = data.tasks.map(t => ({
+            name: t.name || '',
+            slots: new Set(t.slots || []),
+            restSlots: new Set(t.restSlots || []),
+            done: false
+        }));
+        render();
+        
+        if (state.mode === 'run' && !state.interval) {
+            state.interval = setInterval(update, 2000);
+        }
+    }
+});
+
+// Старт
+render();
+</script>
+
+</body>
+</html>
