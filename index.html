@@ -106,19 +106,36 @@
         .status-bar {
             margin-top: 10px;
             font-family: 'Courier New', monospace;
-            font-size: 8px;
+            font-size: 16px;
         }
 
         .btn {
             background: #020;
             color: #0f0;
             border: 1px solid #0f0;
-            padding: 2px 8px;
+            padding: 5px 15px;
             font-family: 'Courier New', monospace;
-            font-size: 8px;
+            font-size: 16px;
             font-weight: normal;
             cursor: pointer;
-            margin-right: 5px;
+            margin-right: 10px;
+        }
+
+        body.multicolor {
+            color: #fff;
+        }
+
+        body.multicolor .btn {
+            color: #fff;
+            border-color: #fff;
+        }
+
+        body.multicolor .task-checkbox {
+            color: #A06B4F;
+        }
+
+        body.multicolor .rest-slot {
+            color: #A06B4F;
         }
 
         .btn:hover { background: #040; }
@@ -145,6 +162,7 @@
     <button class="btn" onclick="addTask()">ADD</button>
     <button class="btn" onclick="delTask()">DEL</button>
     <button class="btn" onclick="location.reload()">REFRESH</button>
+    <button class="btn" onclick="toggleTheme()">MULTICOLOR</button>
 </div>
 
 
@@ -275,7 +293,7 @@ function buildHeaderSlots(currentSlot, isRun) {
         let isCurrent = false;
 
         if (rest.has(i)) {
-            ch = REST;
+            ch = `<span class="rest-slot">${REST}</span>`;
         } else if (work.has(i)) {
             if (isRun) {
                 if (i < currentSlot) ch = FILLED;
@@ -308,6 +326,14 @@ function buildHeaderSlots(currentSlot, isRun) {
     return html;
 }
 
+// Построение символа слота с цветом
+function slotChar(ch, isRest) {
+    if (isRest) {
+        return `<span class="rest-slot">${ch}</span>`;
+    }
+    return ch;
+}
+
 // Построение строки слотов для задачи
 function buildTaskSlots(taskIdx, currentSlot, isRun) {
     const task = state.tasks[taskIdx];
@@ -318,7 +344,7 @@ function buildTaskSlots(taskIdx, currentSlot, isRun) {
         let isCurrent = false;
 
         if (task.restSlots.has(i)) {
-            ch = REST;
+            ch = `<span class="rest-slot">${REST}</span>`;
         } else if (task.slots.has(i)) {
             if (isRun) {
                 if (i < currentSlot) ch = FILLED;
@@ -778,6 +804,12 @@ window.stopRun = stopRun;
 window.resetAll = resetAll;
 window.addTask = addTask;
 window.delTask = delTask;
+window.toggleTheme = toggleTheme;
+
+// Переключение темы
+function toggleTheme() {
+    document.body.classList.toggle('multicolor');
+}
 
 // Старт
 render();
