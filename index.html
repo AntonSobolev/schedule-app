@@ -695,10 +695,11 @@ function render() {
 document.getElementById('app').addEventListener('mousedown', (e) => {
     if (state.mode !== 'edit') return;
 
-    const el = e.target;
-    
+    // Найти слот (может быть вложенный span)
+    const el = e.target.closest('.slot-char');
+
     // Клик на слот
-    if (!el.classList.contains('slot-char')) return;
+    if (!el) return;
 
     e.preventDefault();
 
