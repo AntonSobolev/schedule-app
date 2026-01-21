@@ -183,6 +183,76 @@
             font-size: 18px;
             font-weight: normal;
         }
+
+        .help-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .help-overlay.visible {
+            display: flex;
+        }
+
+        .help-popup {
+            background: #000;
+            border: 2px solid #0f0;
+            padding: 20px;
+            max-width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .help-title {
+            text-align: center;
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #0f0;
+        }
+
+        .help-content {
+            white-space: pre-wrap;
+            line-height: 1.5;
+            color: #0f0;
+        }
+
+        .help-content b {
+            color: #0f0;
+        }
+
+        .help-close {
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        body.theme-white .help-popup {
+            border-color: #fff;
+        }
+
+        body.theme-white .help-title,
+        body.theme-white .help-content,
+        body.theme-white .help-content b {
+            color: #fff;
+        }
+
+        body.theme-red .help-popup {
+            border-color: #8B3A3A;
+        }
+
+        body.theme-red .help-title,
+        body.theme-red .help-content,
+        body.theme-red .help-content b {
+            color: #8B3A3A;
+        }
     </style>
 </head>
 <body>
@@ -198,6 +268,51 @@
     <button class="btn" onclick="location.reload()">REFRESH</button>
     <button class="btn" onclick="toggleTheme()">COLOR</button>
     <button class="btn" onclick="exitUser()">EXIT</button>
+    <button class="btn" onclick="showHelp()">HELP</button>
+</div>
+
+<div id="helpOverlay" class="help-overlay" onclick="hideHelp()">
+    <div class="help-popup" onclick="event.stopPropagation()">
+        <div class="help-title">═══ ПОМОЩЬ ═══</div>
+        <div class="help-content">
+<b>СИМВОЛЫ:</b>
+  ▢ — пустой слот (30 мин)
+  ■ — заполненный слот
+  ▣ — текущий слот (мигает)
+  ▨ — отдых
+
+<b>РЕДАКТИРОВАНИЕ ЗАДАЧ:</b>
+  • Клик на текст — редактировать
+  • Enter — создать новую задачу
+  • ↑/↓ — переход между задачами
+  • ! или [] — добавить чекбокс
+
+<b>СЛОТЫ (правая часть):</b>
+  • Клик — цикл: пусто → работа → отдых → пусто
+  • Слот можно назначить только одной задаче
+  • Отдых отображается во всех строках
+
+<b>ЧЕКБОКСЫ:</b>
+  • Клик на ▢/☒ — отметить выполнено
+  • Работает в любом режиме
+
+<b>КНОПКИ:</b>
+  ▶ — запустить таймер
+  ⏸ — остановить таймер
+  RESET — сбросить всё
+  ADD/DEL — добавить/удалить задачу
+  COLOR — сменить тему
+  EXIT — сменить пользователя
+
+<b>ГОРЯЧИЕ КЛАВИШИ:</b>
+  F5 — запустить таймер
+
+<b>СИНХРОНИЗАЦИЯ:</b>
+  Данные синхронизируются между
+  устройствами автоматически.
+        </div>
+        <button class="btn help-close" onclick="hideHelp()">ЗАКРЫТЬ</button>
+    </div>
 </div>
 
 
@@ -870,6 +985,22 @@ onValue(ref(db, 'users/' + userName), (snapshot) => {
     }
 });
 
+// Показать/скрыть помощь
+function showHelp() {
+    document.getElementById('helpOverlay').classList.add('visible');
+}
+
+function hideHelp() {
+    document.getElementById('helpOverlay').classList.remove('visible');
+}
+
+// Закрытие по Escape
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        hideHelp();
+    }
+});
+
 // Делаем функции глобальными для onclick
 window.startRun = startRun;
 window.stopRun = stopRun;
@@ -878,6 +1009,8 @@ window.addTask = addTask;
 window.delTask = delTask;
 window.toggleTheme = toggleTheme;
 window.exitUser = exitUser;
+window.showHelp = showHelp;
+window.hideHelp = hideHelp;
 
 function exitUser() {
     localStorage.removeItem('schedule_user');
