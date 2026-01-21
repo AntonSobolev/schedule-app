@@ -706,18 +706,23 @@ document.getElementById('app').addEventListener('mousedown', (e) => {
     const task = state.tasks[t];
 
     if (e.button === 0) {
-        // Проверить, занят ли слот другой задачей
+        const allRest = getAllRestSlots();
+        
+        // Проверить, занят ли слот другой задачей (не отдыхом)
         let slotTaken = false;
         for (let i = 0; i < state.tasks.length; i++) {
-            if (i !== t && (state.tasks[i].slots.has(s) || state.tasks[i].restSlots.has(s))) {
+            if (i !== t && state.tasks[i].slots.has(s)) {
                 slotTaken = true;
                 break;
             }
         }
         
         // ЛКМ - цикл: пусто → рабочий → отдых → пусто
-        if (task.restSlots.has(s)) {
-            task.restSlots.delete(s);
+        if (allRest.has(s)) {
+            // Удалить отдых из всех задач
+            for (let i = 0; i < state.tasks.length; i++) {
+                state.tasks[i].restSlots.delete(s);
+            }
         } else if (task.slots.has(s)) {
             task.slots.delete(s);
             task.restSlots.add(s);
